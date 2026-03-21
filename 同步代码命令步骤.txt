@@ -1,0 +1,6 @@
+git init
+git add .
+git commit -m "更改信息备注"    #提交文件到本地 Git 仓库（生成提交记录）
+git remote add origin git@github.com:你的GitHub用户名/IRM.git  
+git push -u origin main
+

@@ -1,0 +1,35 @@
+训练命令之ERM参数：
+CUDA_VISIBLE_DEVICES=0 python -m train.train_erm \
+>>   --num_classes 7 \
+>>   --train_npz data/processed/train.npz \
+>>   --val_npz data/processed/val.npz \
+>>   --test_npz data/processed/test.npz \
+>>   --epochs 80 \
+>>   --device cuda \
+>>   --batch_size 8 \
+>>   --ema_decay 0 \
+>>   --output_dir experiments/erm
+
+
+CUDA_VISIBLE_DEVICES=0 python scripts/plot_results.py \
+  --erm_logs experiments/erm/logs.csv \
+  --irm_logs experiments/irm/logs.csv \
+  --output_dir experiments/plots \
+  --smooth_window 5
+
+
+
+CUDA_VISIBLE_DEVICES=0 python -m train.train_erm --config train/config.erm_dg.json --num_classes 7
+CUDA_VISIBLE_DEVICES=0 python -m train.train_irm --config train/config.irm_dg.json --num_classes 7
+python scripts/plot_results.py --erm_logs experiments_gpu/erm_dg_tuned/logs.csv --irm_logs experiments_gpu/irm_dg_tuned/logs.csv --output_dir experiments_gpu/plots_dg_tuned
+
+
+
+
+
+
+
+
+
+
+

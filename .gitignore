@@ -1,0 +1,4 @@
+# 排除整个 data 文件夹（内存>2GB）
+data/
+main/
+algorithms/
