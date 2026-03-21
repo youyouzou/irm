@@ -91,6 +91,12 @@ IRM：
 python -m train.train_irm --config train/config.example.json --num_classes 7
 ```
 
+用eval_checkpoint.py加载保存的模型跑测试集的命令：
+```bash
+python -u scripts/eval_checkpoint.py --checkpoint experiments_gpu5/irm_dg_tuned/best_model.pt
+```
+
+
 ### 5.2 直接命令行训练
 
 ERM：
