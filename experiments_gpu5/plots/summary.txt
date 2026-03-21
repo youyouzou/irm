@@ -1,0 +1,8 @@
+ERM best_train_acc: 0.983961 @ epoch 98
+ERM best_val_acc:   0.977778 @ epoch 92
+ERM best_selected:  0.977778 @ epoch 92
+IRM best_train_acc: 0.989499 @ epoch 110
+IRM best_val_acc:   0.981818 @ epoch 112
+IRM best_selected:  0.979040 @ epoch 116
+IRM best_hybrid:    0.978535 @ epoch 119
+IRM best_worst_env: 0.975758 @ epoch 113
