@@ -3,8 +3,9 @@ import csv
 import json
 import os
 import random
+from datetime import datetime, timezone
 from dataclasses import dataclass
-from typing import Callable, Dict, Iterator, Optional, Tuple
+from typing import Any, Callable, Dict, Iterator, Optional, Tuple
 
 import numpy as np
 import torch
@@ -22,6 +23,8 @@ from models.cnn import CSIClassifier
 class TrainerArtifacts:
     log_path: str
     best_model_path: str
+    resolved_config_path: str
+    run_summary_path: str
 
 
 class ModelEMA:
@@ -125,7 +128,26 @@ def _prepare_artifacts(output_dir: str) -> TrainerArtifacts:
     return TrainerArtifacts(
         log_path=os.path.join(output_dir, "logs.csv"),
         best_model_path=os.path.join(output_dir, "best_model.pt"),
+        resolved_config_path=os.path.join(output_dir, "resolved_config.json"),
+        run_summary_path=os.path.join(output_dir, "run_summary.json"),
     )
+
+
+def _project_root() -> str:
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _now_utc_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def write_resolved_config(args, artifacts: TrainerArtifacts) -> None:
+    payload = {
+        "timestamp": _now_utc_iso(),
+        "hyperparameters": dict(vars(args)),
+    }
+    with open(artifacts.resolved_config_path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
 
 
 def _metadata_path_for(model_path: str) -> str:
@@ -141,6 +163,111 @@ def _write_best_model_metadata(model_path: str, args, **metrics) -> None:
     payload.update(metrics)
     with open(_metadata_path_for(model_path), "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
+
+
+def save_checkpoint_and_metadata(model_path: str, checkpoint: Dict[str, Any], args, **metrics) -> None:
+    torch.save(checkpoint, model_path)
+    _write_best_model_metadata(model_path, args, **metrics)
+
+
+def append_experiment_index(summary: Dict[str, Any]) -> None:
+    experiments_dir = os.path.join(_project_root(), "experiments")
+    os.makedirs(experiments_dir, exist_ok=True)
+    index_path = os.path.join(experiments_dir, "experiment_index.csv")
+    headers = [
+        "timestamp",
+        "algorithm",
+        "model_variant",
+        "seed",
+        "output_dir",
+        "best_epoch",
+        "selected_val_acc",
+        "val_acc",
+        "val_worst_env_acc",
+        "test_acc_selected",
+        "test_acc_overall",
+        "test_acc_worst_env",
+        "checkpoint_paths",
+    ]
+    row = {
+        "timestamp": summary.get("timestamp"),
+        "algorithm": summary.get("algorithm"),
+        "model_variant": summary.get("model_variant"),
+        "seed": summary.get("seed"),
+        "output_dir": summary.get("output_dir"),
+        "best_epoch": summary.get("best_epoch"),
+        "selected_val_acc": summary.get("selected_val_acc"),
+        "val_acc": summary.get("val_acc"),
+        "val_worst_env_acc": summary.get("val_worst_env_acc"),
+        "test_acc_selected": summary.get("test_acc_selected"),
+        "test_acc_overall": summary.get("test_acc_overall"),
+        "test_acc_worst_env": summary.get("test_acc_worst_env"),
+        "checkpoint_paths": json.dumps(summary.get("checkpoint_paths", {}), ensure_ascii=False),
+    }
+    file_exists = os.path.isfile(index_path)
+    with open(index_path, "a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=headers)
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(row)
+
+
+def final_test_eval_and_summary(
+    *,
+    algorithm: str,
+    args,
+    artifacts: TrainerArtifacts,
+    model: nn.Module,
+    test_loader: DataLoader,
+    device: str,
+    eval_transform: Optional[Callable[[torch.Tensor], torch.Tensor]],
+    best_epoch: int,
+    selected_val_acc: float,
+    val_acc: float,
+    val_worst_env_acc: Optional[float],
+    selected_checkpoint_path: str,
+    overall_checkpoint_path: Optional[str] = None,
+    worst_checkpoint_path: Optional[str] = None,
+) -> Dict[str, Any]:
+    def _eval_ckpt(path: Optional[str]) -> Optional[float]:
+        if not path or not os.path.isfile(path):
+            return None
+        ckpt = torch.load(path, map_location=device)
+        model.load_state_dict(ckpt["model_state"])
+        return evaluate(model, test_loader, device, transform=eval_transform)
+
+    test_acc_selected = _eval_ckpt(selected_checkpoint_path)
+    test_acc_overall = _eval_ckpt(overall_checkpoint_path)
+    test_acc_worst = _eval_ckpt(worst_checkpoint_path)
+
+    if algorithm == "erm":
+        # ERM 仅有一个 best checkpoint。
+        test_acc_overall = test_acc_selected
+        test_acc_worst = None
+
+    summary = {
+        "timestamp": _now_utc_iso(),
+        "algorithm": algorithm,
+        "model_variant": getattr(args, "model_variant", "baseline"),
+        "seed": getattr(args, "seed", None),
+        "best_epoch": best_epoch,
+        "selected_val_acc": selected_val_acc,
+        "val_acc": val_acc,
+        "val_worst_env_acc": val_worst_env_acc,
+        "test_acc_selected": test_acc_selected,
+        "test_acc_overall": test_acc_overall,
+        "test_acc_worst_env": test_acc_worst,
+        "checkpoint_paths": {
+            "selected": selected_checkpoint_path,
+            "overall": overall_checkpoint_path,
+            "worst_env": worst_checkpoint_path,
+        },
+        "output_dir": args.output_dir,
+    }
+    with open(artifacts.run_summary_path, "w", encoding="utf-8") as f:
+        json.dump(summary, f, ensure_ascii=False, indent=2)
+    append_experiment_index(summary)
+    return summary
 
 
 def _build_transforms(args) -> Tuple:
@@ -273,13 +400,19 @@ def _build_irm_loaders(args) -> Tuple[Dict[int, DataLoader], DataLoader, DataLoa
 def run_erm(args) -> None:
     set_seed(args.seed)
     artifacts = _prepare_artifacts(args.output_dir)
+    write_resolved_config(args, artifacts)
     device = args.device
     print(f"Using device: {device}")
+    print(f"Model variant: {getattr(args, 'model_variant', 'baseline')}")
 
     train_loader, val_loader, test_loader = _build_erm_loaders(args)
     train_transform, eval_transform = _build_transforms(args)
 
-    model = CSIClassifier(num_classes=args.num_classes, dropout=args.dropout).to(device)
+    model = CSIClassifier(
+        num_classes=args.num_classes,
+        dropout=args.dropout,
+        model_variant=getattr(args, "model_variant", "baseline"),
+    ).to(device)
     criterion = nn.CrossEntropyLoss(label_smoothing=args.label_smoothing)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = ReduceLROnPlateau(optimizer, mode="max", factor=0.5, patience=4)
@@ -363,12 +496,9 @@ def run_erm(args) -> None:
                 "args": vars(args),
                 "trainer_mode": "erm",
             }
-            torch.save(
+            save_checkpoint_and_metadata(
+                artifacts.best_model_path,
                 checkpoint,
-                artifacts.best_model_path,
-            )
-            _write_best_model_metadata(
-                artifacts.best_model_path,
                 args,
                 trainer_mode="erm",
                 best_epoch=epoch,
@@ -392,15 +522,34 @@ def run_erm(args) -> None:
     )
     best_ckpt = torch.load(artifacts.best_model_path, map_location=device)
     model.load_state_dict(best_ckpt["model_state"])
-    test_acc = evaluate(model, test_loader, device, transform=eval_transform)
-    print(f"Test accuracy: {test_acc:.4f}")
+
+    summary = final_test_eval_and_summary(
+        algorithm="erm",
+        args=args,
+        artifacts=artifacts,
+        model=model,
+        test_loader=test_loader,
+        device=device,
+        eval_transform=eval_transform,
+        best_epoch=int(best_ckpt.get("epoch", 0)),
+        selected_val_acc=float(best_ckpt.get("selected_val_acc", 0.0)),
+        val_acc=float(best_ckpt.get("val_acc", 0.0)),
+        val_worst_env_acc=None,
+        selected_checkpoint_path=artifacts.best_model_path,
+    )
+    if summary["test_acc_selected"] is not None:
+        print(f"Test accuracy: {summary['test_acc_selected']:.4f}")
+    print(f"Run summary saved to: {artifacts.run_summary_path}")
+    print(f"Indexed run: algorithm={summary['algorithm']}, test_acc_selected={summary['test_acc_selected']:.4f}")
 
 
 def run_irm(args) -> None:
     set_seed(args.seed)
     artifacts = _prepare_artifacts(args.output_dir)
+    write_resolved_config(args, artifacts)
     device = args.device
     print(f"Using device: {device}")
+    print(f"Model variant: {getattr(args, 'model_variant', 'baseline')}")
 
     env_loaders, val_loader, test_loader = _build_irm_loaders(args)
     train_transform, eval_transform = _build_transforms(args)
@@ -410,7 +559,11 @@ def run_irm(args) -> None:
     print(f"Train envs: {env_ids}")
     print(f"Batches per env: {env_batch_steps}")
 
-    model = CSIClassifier(num_classes=args.num_classes, dropout=args.dropout).to(device)
+    model = CSIClassifier(
+        num_classes=args.num_classes,
+        dropout=args.dropout,
+        model_variant=getattr(args, "model_variant", "baseline"),
+    ).to(device)
     criterion = nn.CrossEntropyLoss(label_smoothing=args.label_smoothing)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = ReduceLROnPlateau(optimizer, mode="max", factor=0.5, patience=5)
@@ -613,12 +766,9 @@ def run_irm(args) -> None:
                 "penalty_ramp_epochs": penalty_ramp_epochs,
                 "trainer_mode": "irm",
             }
-            torch.save(
+            save_checkpoint_and_metadata(
+                best_overall_path,
                 checkpoint,
-                best_overall_path,
-            )
-            _write_best_model_metadata(
-                best_overall_path,
                 args,
                 trainer_mode="irm",
                 best_epoch=epoch,
@@ -651,12 +801,9 @@ def run_irm(args) -> None:
                 "penalty_ramp_epochs": penalty_ramp_epochs,
                 "trainer_mode": "irm",
             }
-            torch.save(
+            save_checkpoint_and_metadata(
+                best_worst_env_path,
                 checkpoint,
-                best_worst_env_path,
-            )
-            _write_best_model_metadata(
-                best_worst_env_path,
                 args,
                 trainer_mode="irm",
                 best_epoch=epoch,
@@ -690,12 +837,9 @@ def run_irm(args) -> None:
                 "penalty_ramp_epochs": penalty_ramp_epochs,
                 "trainer_mode": "irm",
             }
-            torch.save(
+            save_checkpoint_and_metadata(
+                artifacts.best_model_path,
                 checkpoint,
-                artifacts.best_model_path,
-            )
-            _write_best_model_metadata(
-                artifacts.best_model_path,
                 args,
                 trainer_mode="irm",
                 best_epoch=epoch,
@@ -725,17 +869,31 @@ def run_irm(args) -> None:
     )
     best_ckpt = torch.load(artifacts.best_model_path, map_location=device)
     model.load_state_dict(best_ckpt["model_state"])
-    test_acc_selected = evaluate(model, test_loader, device, transform=eval_transform)
-    print(f"Test accuracy (best-selected model, metric={val_selection_metric}): {test_acc_selected:.4f}")
+    summary = final_test_eval_and_summary(
+        algorithm="irm",
+        args=args,
+        artifacts=artifacts,
+        model=model,
+        test_loader=test_loader,
+        device=device,
+        eval_transform=eval_transform,
+        best_epoch=int(best_ckpt.get("epoch", 0)),
+        selected_val_acc=float(best_ckpt.get("selected_val_acc", 0.0)),
+        val_acc=float(best_ckpt.get("val_acc", 0.0)),
+        val_worst_env_acc=float(best_ckpt.get("val_worst_env_acc", 0.0)),
+        selected_checkpoint_path=artifacts.best_model_path,
+        overall_checkpoint_path=best_overall_path,
+        worst_checkpoint_path=best_worst_env_path,
+    )
 
-    if os.path.isfile(best_overall_path):
-        ckpt_overall = torch.load(best_overall_path, map_location=device)
-        model.load_state_dict(ckpt_overall["model_state"])
-        test_acc_overall = evaluate(model, test_loader, device, transform=eval_transform)
-        print(f"Test accuracy (best-overall-val model): {test_acc_overall:.4f}")
-
-    if os.path.isfile(best_worst_env_path):
-        ckpt_worst = torch.load(best_worst_env_path, map_location=device)
-        model.load_state_dict(ckpt_worst["model_state"])
-        test_acc_worst = evaluate(model, test_loader, device, transform=eval_transform)
-        print(f"Test accuracy (best-worst-env-val model): {test_acc_worst:.4f}")
+    if summary["test_acc_selected"] is not None:
+        print(
+            f"Test accuracy (best-selected model, metric={val_selection_metric}): "
+            f"{summary['test_acc_selected']:.4f}"
+        )
+    if summary["test_acc_overall"] is not None:
+        print(f"Test accuracy (best-overall-val model): {summary['test_acc_overall']:.4f}")
+    if summary["test_acc_worst_env"] is not None:
+        print(f"Test accuracy (best-worst-env-val model): {summary['test_acc_worst_env']:.4f}")
+    print(f"Run summary saved to: {artifacts.run_summary_path}")
+    print(f"Indexed run: algorithm={summary['algorithm']}, test_acc_selected={summary['test_acc_selected']:.4f}")

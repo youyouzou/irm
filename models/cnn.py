@@ -110,6 +110,50 @@ class ResidualBlock(nn.Module):
         return self.out_act(out)
 
 
+class MultiScaleTemporalStem(nn.Module):
+    """
+    多尺度时间卷积 stem:
+    - 并行时间卷积核 k_t = {3, 7, 11}
+    - 频域卷积核固定为 3
+    - concat 后用 1x1 融合回 out_ch
+    """
+
+    def __init__(self, in_ch: int, out_ch: int) -> None:
+        super().__init__()
+        branch_out = out_ch // 2
+        kernels_t = (3, 7, 11)
+
+        self.branches = nn.ModuleList(
+            [
+                nn.Sequential(
+                    nn.Conv2d(
+                        in_ch,
+                        branch_out,
+                        kernel_size=(k_t, 3),
+                        stride=1,
+                        padding=(k_t // 2, 1),
+                        bias=False,
+                    ),
+                    nn.GroupNorm(_pick_groups(branch_out), branch_out),
+                    nn.ReLU(inplace=True),
+                )
+                for k_t in kernels_t
+            ]
+        )
+
+        fusion_in = branch_out * len(kernels_t)
+        self.fuse = nn.Sequential(
+            nn.Conv2d(fusion_in, out_ch, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.GroupNorm(_pick_groups(out_ch), out_ch),
+            nn.ReLU(inplace=True),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        feats = [branch(x) for branch in self.branches]
+        x_cat = torch.cat(feats, dim=1)
+        return self.fuse(x_cat)
+
+
 class CSIClassifier(nn.Module):
     """
     用于 WiFi CSI 数据的分类模型。
@@ -117,19 +161,26 @@ class CSIClassifier(nn.Module):
     输出：形状 [B, num_classes] 的 logits。
     """
 
-    def __init__(self, num_classes: int, dropout: float = 0.3):
+    def __init__(self, num_classes: int, dropout: float = 0.3, model_variant: str = "baseline"):
         """
         num_classes: 分类类别数（你的任务中是 7）
         dropout: 全连接层和残差块内部的 dropout 比例
+        model_variant: 模型变体，支持 "baseline" | "msstem"
         """
         super().__init__()
+        self.model_variant = model_variant
 
-        # stem：把单通道 CSI 特征映射到 32 通道的特征图
-        self.stem = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.GroupNorm(_pick_groups(32), 32),
-            nn.ReLU(inplace=True),
-        )
+        if model_variant == "baseline":
+            # stem：把单通道 CSI 特征映射到 32 通道的特征图
+            self.stem = nn.Sequential(
+                nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1, bias=False),
+                nn.GroupNorm(_pick_groups(32), 32),
+                nn.ReLU(inplace=True),
+            )
+        elif model_variant == "msstem":
+            self.stem = MultiScaleTemporalStem(in_ch=1, out_ch=32)
+        else:
+            raise ValueError(f"Unsupported model_variant: {model_variant}")
 
         # feature：堆叠多个 ResidualBlock，逐步提取高层特征并下采样
         self.feature = nn.Sequential(

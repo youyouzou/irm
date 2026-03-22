@@ -39,6 +39,7 @@ def _build_args_from_checkpoint(
         num_workers=get("num_workers", 0),
         num_classes=get("num_classes"),
         dropout=get("dropout", 0.3),
+        model_variant=get("model_variant", "baseline"),
         device=device,
     )
 
@@ -87,6 +88,13 @@ def main() -> None:
         default=None,
         help="Optional: override dropout (usually keep as in checkpoint).",
     )
+    parser.add_argument(
+        "--model_variant",
+        type=str,
+        default=None,
+        choices=["baseline", "msstem"],
+        help="Optional: override model variant.",
+    )
 
     cli_args = parser.parse_args()
 
@@ -112,6 +120,7 @@ def main() -> None:
     print(f"Num workers: {args.num_workers}")
     print(f"Num classes: {args.num_classes}")
     print(f"Dropout: {args.dropout}")
+    print(f"Model variant: {args.model_variant}")
 
     # 3) 构建测试集 DataLoader
     test_ds = WiFiCSIDataset(args.test_npz)
@@ -123,7 +132,11 @@ def main() -> None:
     )
 
     # 4) 构建模型并加载权重
-    model = CSIClassifier(num_classes=args.num_classes, dropout=args.dropout).to(device)
+    model = CSIClassifier(
+        num_classes=args.num_classes,
+        dropout=args.dropout,
+        model_variant=args.model_variant,
+    ).to(device)
     model.load_state_dict(ckpt["model_state"])
 
     # 5) 在测试集上评估

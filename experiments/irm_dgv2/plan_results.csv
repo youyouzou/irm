@@ -1,0 +1,5 @@
+﻿"algorithm","stage","pair_id","run_name","output_dir","selected_val_acc","val_acc","val_worst_env_acc","test_acc_selected","test_acc_overall","test_acc_worst_env","model_variant","seed"
+"irm","stage_a","a2","a2_irm","experiments/irm_dgv2/stage_a/a2_irm","0.9765151515151516","0.9803030303030303","0.9727272727272728","0.46615477874318045","0.46615477874318045","0.46615477874318045","baseline","42"
+"erm","stage_a","a2","a2_erm","experiments/irm_dgv2/stage_a/a2_erm","0.9787878787878788","0.9787878787878788","","0.4184683774499899","0.4184683774499899","","baseline","42"
+"irm","stage_a","a7","a7_irm","experiments/irm_dgv2/stage_a/a7_irm","0.9795454545454545","0.9813131313131314","0.9777777777777777","0.46474035158617905","0.46837744998989694","0.46474035158617905","baseline","42"
+"erm","stage_a","a7","a7_erm","experiments/irm_dgv2/stage_a/a7_erm","0.9813131313131314","0.9813131313131314","","0.3984643362295413","0.3984643362295413","","baseline","42"

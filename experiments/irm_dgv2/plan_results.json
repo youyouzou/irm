@@ -1,0 +1,178 @@
+﻿[
+    {
+        "algorithm":  "irm",
+        "stage":  "stage_a",
+        "pair_id":  "a2",
+        "run_name":  "a2_irm",
+        "output_dir":  "experiments/irm_dgv2/stage_a/a2_irm",
+        "overrides":  {
+                          "batch_size":  16,
+                          "epochs":  140,
+                          "dropout":  0.45,
+                          "label_smoothing":  0.0,
+                          "val_selection_metric":  "hybrid",
+                          "aug_prob":  0.55,
+                          "amp_scale_low":  0.85,
+                          "amp_scale_high":  1.15,
+                          "noise_std_ratio":  0.01,
+                          "time_mask_ratio":  0.05,
+                          "subcarrier_mask_ratio":  0.08,
+                          "model_variant":  "baseline",
+                          "seed":  42,
+                          "lr":  0.00035,
+                          "weight_decay":  0.0001,
+                          "irm_lambda":  2.0,
+                          "penalty_anneal_epochs":  10,
+                          "penalty_ramp_epochs":  20
+                      },
+        "summary":  {
+                        "timestamp":  "2026-03-21T15:05:07.957757+00:00",
+                        "algorithm":  "irm",
+                        "model_variant":  "baseline",
+                        "seed":  42,
+                        "best_epoch":  123,
+                        "selected_val_acc":  0.9765151515151516,
+                        "val_acc":  0.9803030303030303,
+                        "val_worst_env_acc":  0.9727272727272728,
+                        "test_acc_selected":  0.46615477874318045,
+                        "test_acc_overall":  0.46615477874318045,
+                        "test_acc_worst_env":  0.46615477874318045,
+                        "checkpoint_paths":  {
+                                                 "selected":  "experiments/irm_dgv2/stage_a/a2_irm/best_model.pt",
+                                                 "overall":  "experiments/irm_dgv2/stage_a/a2_irm/best_overall_model.pt",
+                                                 "worst_env":  "experiments/irm_dgv2/stage_a/a2_irm/best_worst_env_model.pt"
+                                             },
+                        "output_dir":  "experiments/irm_dgv2/stage_a/a2_irm"
+                    }
+    },
+    {
+        "algorithm":  "erm",
+        "stage":  "stage_a",
+        "pair_id":  "a2",
+        "run_name":  "a2_erm",
+        "output_dir":  "experiments/irm_dgv2/stage_a/a2_erm",
+        "overrides":  {
+                          "batch_size":  16,
+                          "epochs":  140,
+                          "dropout":  0.45,
+                          "label_smoothing":  0.0,
+                          "aug_prob":  0.55,
+                          "amp_scale_low":  0.85,
+                          "amp_scale_high":  1.15,
+                          "noise_std_ratio":  0.01,
+                          "time_mask_ratio":  0.05,
+                          "subcarrier_mask_ratio":  0.08,
+                          "model_variant":  "baseline",
+                          "seed":  42,
+                          "lr":  0.00035,
+                          "weight_decay":  0.0001
+                      },
+        "summary":  {
+                        "timestamp":  "2026-03-21T15:58:38.217181+00:00",
+                        "algorithm":  "erm",
+                        "model_variant":  "baseline",
+                        "seed":  42,
+                        "best_epoch":  98,
+                        "selected_val_acc":  0.9787878787878788,
+                        "val_acc":  0.9787878787878788,
+                        "val_worst_env_acc":  null,
+                        "test_acc_selected":  0.4184683774499899,
+                        "test_acc_overall":  0.4184683774499899,
+                        "test_acc_worst_env":  null,
+                        "checkpoint_paths":  {
+                                                 "selected":  "experiments/irm_dgv2/stage_a/a2_erm/best_model.pt",
+                                                 "overall":  null,
+                                                 "worst_env":  null
+                                             },
+                        "output_dir":  "experiments/irm_dgv2/stage_a/a2_erm"
+                    }
+    },
+    {
+        "algorithm":  "irm",
+        "stage":  "stage_a",
+        "pair_id":  "a7",
+        "run_name":  "a7_irm",
+        "output_dir":  "experiments/irm_dgv2/stage_a/a7_irm",
+        "overrides":  {
+                          "batch_size":  16,
+                          "epochs":  140,
+                          "dropout":  0.45,
+                          "label_smoothing":  0.0,
+                          "val_selection_metric":  "hybrid",
+                          "aug_prob":  0.55,
+                          "amp_scale_low":  0.85,
+                          "amp_scale_high":  1.15,
+                          "noise_std_ratio":  0.01,
+                          "time_mask_ratio":  0.05,
+                          "subcarrier_mask_ratio":  0.08,
+                          "model_variant":  "baseline",
+                          "seed":  42,
+                          "lr":  0.00035,
+                          "weight_decay":  0.0003,
+                          "irm_lambda":  2.0,
+                          "penalty_anneal_epochs":  10,
+                          "penalty_ramp_epochs":  30
+                      },
+        "summary":  {
+                        "timestamp":  "2026-03-21T21:47:13.558292+00:00",
+                        "algorithm":  "irm",
+                        "model_variant":  "baseline",
+                        "seed":  42,
+                        "best_epoch":  131,
+                        "selected_val_acc":  0.9795454545454545,
+                        "val_acc":  0.9813131313131314,
+                        "val_worst_env_acc":  0.9777777777777777,
+                        "test_acc_selected":  0.46474035158617905,
+                        "test_acc_overall":  0.46837744998989694,
+                        "test_acc_worst_env":  0.46474035158617905,
+                        "checkpoint_paths":  {
+                                                 "selected":  "experiments/irm_dgv2/stage_a/a7_irm/best_model.pt",
+                                                 "overall":  "experiments/irm_dgv2/stage_a/a7_irm/best_overall_model.pt",
+                                                 "worst_env":  "experiments/irm_dgv2/stage_a/a7_irm/best_worst_env_model.pt"
+                                             },
+                        "output_dir":  "experiments/irm_dgv2/stage_a/a7_irm"
+                    }
+    },
+    {
+        "algorithm":  "erm",
+        "stage":  "stage_a",
+        "pair_id":  "a7",
+        "run_name":  "a7_erm",
+        "output_dir":  "experiments/irm_dgv2/stage_a/a7_erm",
+        "overrides":  {
+                          "batch_size":  16,
+                          "epochs":  140,
+                          "dropout":  0.45,
+                          "label_smoothing":  0.0,
+                          "aug_prob":  0.55,
+                          "amp_scale_low":  0.85,
+                          "amp_scale_high":  1.15,
+                          "noise_std_ratio":  0.01,
+                          "time_mask_ratio":  0.05,
+                          "subcarrier_mask_ratio":  0.08,
+                          "model_variant":  "baseline",
+                          "seed":  42,
+                          "lr":  0.00035,
+                          "weight_decay":  0.0003
+                      },
+        "summary":  {
+                        "timestamp":  "2026-03-21T22:33:32.155893+00:00",
+                        "algorithm":  "erm",
+                        "model_variant":  "baseline",
+                        "seed":  42,
+                        "best_epoch":  121,
+                        "selected_val_acc":  0.9813131313131314,
+                        "val_acc":  0.9813131313131314,
+                        "val_worst_env_acc":  null,
+                        "test_acc_selected":  0.3984643362295413,
+                        "test_acc_overall":  0.3984643362295413,
+                        "test_acc_worst_env":  null,
+                        "checkpoint_paths":  {
+                                                 "selected":  "experiments/irm_dgv2/stage_a/a7_erm/best_model.pt",
+                                                 "overall":  null,
+                                                 "worst_env":  null
+                                             },
+                        "output_dir":  "experiments/irm_dgv2/stage_a/a7_erm"
+                    }
+    }
+]

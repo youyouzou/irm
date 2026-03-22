@@ -1,7 +1,8 @@
 import argparse
 import csv
+import json
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Any
 
 import matplotlib.pyplot as plt
 
@@ -20,6 +21,15 @@ def load_logs(path: Path) -> Dict[str, List[float]]:
                 else:
                     logs[k].append(float(v))
     return logs
+
+
+def load_run_summary(path: Path) -> Dict[str, Any]:
+    if not path.is_file():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
 
 
 def plot_erm(log_path: Path, output_dir: Path) -> None:
@@ -134,6 +144,7 @@ def summarize_logs(erm_log_path: Path, irm_log_path: Path, output_dir: Path) -> 
 
     if erm_log_path.is_file():
         erm = load_logs(erm_log_path)
+        erm_summary = load_run_summary(erm_log_path.parent / "run_summary.json")
         if "train_acc" in erm and erm["train_acc"]:
             best_train = max(erm["train_acc"])
             best_train_epoch = erm["epoch"][erm["train_acc"].index(best_train)]
@@ -146,9 +157,17 @@ def summarize_logs(erm_log_path: Path, irm_log_path: Path, output_dir: Path) -> 
             best_sel = max(erm["selected_val_acc"])
             best_sel_epoch = erm["epoch"][erm["selected_val_acc"].index(best_sel)]
             lines.append(f"ERM best_selected:  {best_sel:.6f} @ epoch {best_sel_epoch}")
+        if erm_summary:
+            lines.append(
+                "ERM test(selected/overall/worst): "
+                f"{erm_summary.get('test_acc_selected')} / "
+                f"{erm_summary.get('test_acc_overall')} / "
+                f"{erm_summary.get('test_acc_worst_env')}"
+            )
 
     if irm_log_path.is_file():
         irm = load_logs(irm_log_path)
+        irm_summary = load_run_summary(irm_log_path.parent / "run_summary.json")
         if "train_acc" in irm and irm["train_acc"]:
             best_train = max(irm["train_acc"])
             best_train_epoch = irm["epoch"][irm["train_acc"].index(best_train)]
@@ -169,6 +188,13 @@ def summarize_logs(erm_log_path: Path, irm_log_path: Path, output_dir: Path) -> 
             best_worst = max(irm["val_worst_env_acc"])
             best_worst_epoch = irm["epoch"][irm["val_worst_env_acc"].index(best_worst)]
             lines.append(f"IRM best_worst_env: {best_worst:.6f} @ epoch {best_worst_epoch}")
+        if irm_summary:
+            lines.append(
+                "IRM test(selected/overall/worst): "
+                f"{irm_summary.get('test_acc_selected')} / "
+                f"{irm_summary.get('test_acc_overall')} / "
+                f"{irm_summary.get('test_acc_worst_env')}"
+            )
 
     (output_dir / "summary.txt").write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
 

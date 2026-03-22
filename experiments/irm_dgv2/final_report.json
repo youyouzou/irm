@@ -1,0 +1,44 @@
+﻿{
+    "selection_policy":  {
+                             "kept_pairs":  "stage_a: a2, a7",
+                             "pairing":  "ERM and IRM under matched settings"
+                         },
+    "best_irm_group":  [
+                           {
+                               "run_name":  "a2_irm",
+                               "stage":  "stage_a",
+                               "pair_id":  "a2",
+                               "output_dir":  "experiments/irm_dgv2/stage_a/a2_irm",
+                               "seed":  42,
+                               "test_acc_selected":  0.46615477874318045,
+                               "selected_val_acc":  0.97651515151515156,
+                               "model_variant":  "baseline"
+                           },
+                           {
+                               "run_name":  "a7_irm",
+                               "stage":  "stage_a",
+                               "pair_id":  "a7",
+                               "output_dir":  "experiments/irm_dgv2/stage_a/a7_irm",
+                               "seed":  42,
+                               "test_acc_selected":  0.46474035158617905,
+                               "selected_val_acc":  0.9795454545454545,
+                               "model_variant":  "baseline"
+                           }
+                       ],
+    "irm_group_metrics":  {
+                              "test_acc_selected_mean":  0.46544756516467978,
+                              "test_acc_selected_std":  0.0010001510342101049
+                          },
+    "erm_group_metrics":  {
+                              "test_acc_selected_mean":  0.40846635683976562,
+                              "test_acc_selected_std":  0.014144993198114408
+                          },
+    "paired_summary":  {
+                           "num_pairs":  2,
+                           "irm_better_count":  2,
+                           "erm_better_count":  0,
+                           "tie_count":  0,
+                           "mean_test_acc_gap_irm_minus_erm":  0.056981208324914157,
+                           "std_test_acc_gap_irm_minus_erm":  0.013144842163904304
+                       }
+}

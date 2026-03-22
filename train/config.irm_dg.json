@@ -8,6 +8,7 @@
   "lr": 0.0003,
   "weight_decay": 0.0005,
   "dropout": 0.5,
+  "model_variant": "baseline",
   "irm_lambda": 2.0,
   "penalty_anneal_epochs": 15,
   "penalty_ramp_epochs": 30,

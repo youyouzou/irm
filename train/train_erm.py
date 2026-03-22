@@ -21,13 +21,19 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--train_npz", type=str, default="data/processed/train.npz")
     parser.add_argument("--val_npz", type=str, default="data/processed/val.npz")
     parser.add_argument("--test_npz", type=str, default="data/processed/test.npz")
-    parser.add_argument("--num_classes", type=int, required=True)
+    parser.add_argument("--num_classes", type=int, default=None)
 
     parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--weight_decay", type=float, default=5e-4)
     parser.add_argument("--dropout", type=float, default=0.5)
+    parser.add_argument(
+        "--model_variant",
+        type=str,
+        default="baseline",
+        choices=["baseline", "msstem"],
+    )
 
     parser.add_argument("--label_smoothing", type=float, default=0.1)
     parser.add_argument("--grad_clip", type=float, default=5.0)
@@ -55,7 +61,10 @@ def parse_args():
     early_args, _ = parser.parse_known_args()
     if early_args.config:
         parser.set_defaults(**load_config_file(early_args.config))
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.num_classes is None:
+        parser.error("num_classes is required (set via --num_classes or config file).")
+    return args
 
 
 def main():

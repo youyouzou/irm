@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-03-21T21:47:13.558292+00:00",
+  "algorithm": "irm",
+  "model_variant": "baseline",
+  "seed": 42,
+  "best_epoch": 131,
+  "selected_val_acc": 0.9795454545454545,
+  "val_acc": 0.9813131313131314,
+  "val_worst_env_acc": 0.9777777777777777,
+  "test_acc_selected": 0.46474035158617905,
+  "test_acc_overall": 0.46837744998989694,
+  "test_acc_worst_env": 0.46474035158617905,
+  "checkpoint_paths": {
+    "selected": "experiments/irm_dgv2/stage_a/a7_irm/best_model.pt",
+    "overall": "experiments/irm_dgv2/stage_a/a7_irm/best_overall_model.pt",
+    "worst_env": "experiments/irm_dgv2/stage_a/a7_irm/best_worst_env_model.pt"
+  },
+  "output_dir": "experiments/irm_dgv2/stage_a/a7_irm"
+}

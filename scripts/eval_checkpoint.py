@@ -35,6 +35,7 @@ def _build_args_from_checkpoint(
         num_workers=get("num_workers", 0) if cli_args.num_workers is not None else 0,
         num_classes=get("num_classes"),
         dropout=get("dropout", 0.3),
+        model_variant=get("model_variant", "baseline"),
         input_norm=get("input_norm", "sample_zscore"),
         device=device,
     )
@@ -113,6 +114,7 @@ def main() -> None:
     print(f"Num workers: {args.num_workers}")
     print(f"Num classes: {args.num_classes}")
     print(f"Dropout: {args.dropout}")
+    print(f"Model variant: {args.model_variant}")
     print(f"Input norm: {args.input_norm}")
 
     test_ds = WiFiCSIDataset(args.test_npz, transform=None)
@@ -124,7 +126,11 @@ def main() -> None:
         pin_memory=device.startswith("cuda"),
     )
 
-    model = CSIClassifier(num_classes=args.num_classes, dropout=args.dropout).to(device)
+    model = CSIClassifier(
+        num_classes=args.num_classes,
+        dropout=args.dropout,
+        model_variant=args.model_variant,
+    ).to(device)
     model.load_state_dict(ckpt["model_state"])
 
     test_acc = evaluate(model, test_loader, device, transform=eval_transform)

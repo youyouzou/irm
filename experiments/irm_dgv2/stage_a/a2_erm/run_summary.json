@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-03-21T15:58:38.217181+00:00",
+  "algorithm": "erm",
+  "model_variant": "baseline",
+  "seed": 42,
+  "best_epoch": 98,
+  "selected_val_acc": 0.9787878787878788,
+  "val_acc": 0.9787878787878788,
+  "val_worst_env_acc": null,
+  "test_acc_selected": 0.4184683774499899,
+  "test_acc_overall": 0.4184683774499899,
+  "test_acc_worst_env": null,
+  "checkpoint_paths": {
+    "selected": "experiments/irm_dgv2/stage_a/a2_erm/best_model.pt",
+    "overall": null,
+    "worst_env": null
+  },
+  "output_dir": "experiments/irm_dgv2/stage_a/a2_erm"
+}
